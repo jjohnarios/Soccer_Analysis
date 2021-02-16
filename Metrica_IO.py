@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb  4 18:51:14 2021
-
-Inspiration by: Friends-of-Tracking-Data-FoTD/LaurieOnTracking
+Inspiration by: Friends-of-Tracking-Data-LaurieOnTracking
 
 @author: Apatsidis Ioannis
 """
@@ -25,7 +23,7 @@ def read_event_data(DATA_DIR : str,game_id : int):
     
     Returns
     -------
-    Pandas Dataframe with the event data.
+    event_data_df: Pandas Dataframe with the event data.
     
     """
     
@@ -38,7 +36,8 @@ def transform_coord_system(df: pd.DataFrame,center_coord=(0.5,0.5),field_dimensi
     
     """
     Transforms coordinates into meters based on the real dimensions of the field. Default dimensions for the field are 
-    105m x 68m. Metrica defines the origin ath the top-left of the field (0,0).
+    105m x 68m. Metrica defines the origin at the top-left of the field (0,0).Now the (0,0) is at 
+    the center of the field.
     
     Parameters
     ----------
@@ -48,7 +47,7 @@ def transform_coord_system(df: pd.DataFrame,center_coord=(0.5,0.5),field_dimensi
     
     Returns
     -------
-    Event Dataframe with transformed coordinate system.
+    df: Event Dataframe with transformed coordinate system.
     
     """
     x_columns=[col for col in df.columns if col[-1].lower()=="x"] # Columns ending with 'x'
@@ -58,6 +57,28 @@ def transform_coord_system(df: pd.DataFrame,center_coord=(0.5,0.5),field_dimensi
     df.loc[:,y_columns]=-1*(df.loc[:,y_columns]-center_coord[1]) * field_dimensions[1]
 
     return df
+
+
+def set_single_playing_direction(event,tracking_home,tracking_away):
+    """
+    Reversing coordinates for 1rst Period so that the home team always attacks from left to right, regardless the Period.
+    
+    Parameters
+    ----------
+    event: pd.Dataframe with Event Data.
+    tracking_home: pd.Dataframe with Tracking Data for Home Team.
+    tracking_away: pd.Dataframe with Tracking Data for Away Team.
+    
+    Returns
+    ------
+    event,tracking_home,tracking_away: Updated Event and Tracking Data pd.DataFrames.
+    """
+    
+    for df in [event,tracking_home,tracking_away]:
+        xy_columns=[col for col in df.columns if col[-1].lower()=="x" or col[-1].lower()=="y"] # Columns ending with 'x' or 'y'
+        df.loc[df["Period"]==1,xy_columns]=df.loc[df["Period"]==1,xy_columns].apply(lambda x: x*(-1)) # Reversing coordinates
+        
+    return event,tracking_home,tracking_away
 
 
 def read_tracking_data(DATA_DIR: str,game_id: int , team: str):
@@ -72,7 +93,7 @@ def read_tracking_data(DATA_DIR: str,game_id: int , team: str):
     
     Returns
     -------
-    Pandas Dataframe with the tracking data.
+    tracking_data_df: pd.Dataframe with the tracking data.
     
     """
     
