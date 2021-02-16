@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb  4 20:28:16 2021
 
-
-Inspiration by: Friends-of-Tracking-Data-FoTD/LaurieOnTracking
+Inspiration by: Friends-of-Tracking-Data-LaurieOnTracking
 
 @author: Apatsidis Ioannis
 """
@@ -12,6 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib as mat
 import re
+import matplotlib.animation as animation
+import os
 
 
 def plot_pitch(field_dimensions=(106.,68.)) :
@@ -31,9 +31,7 @@ def plot_pitch(field_dimensions=(106.,68.)) :
     half_field_length=field_dimensions[0]/2
     half_field_width=field_dimensions[1]/2
     
-    fig= plt.figure(figsize=(10,8))
-    ax=plt.gca()
-    
+    fig,ax= plt.subplots(figsize=(10,8))
     # Setting ticks 
     plt.xticks(np.arange(-half_field_length-10,half_field_length+10,1))
     plt.yticks(np.arange(-half_field_width-10,half_field_width+10,1))
@@ -91,7 +89,7 @@ def plot_pitch(field_dimensions=(106.,68.)) :
     right_goal=plt.Rectangle((half_field_length,-goal_line_width/2),goal_height,goal_line_width,edgecolor='b',facecolor='none')
     
     # Pitch Borders (+/- 5 Meters)
-    pitch=plt.Rectangle((-half_field_length-5,-half_field_width-5),2*half_field_length+10,2*half_field_width+10,facecolor='#32CD32')
+    pitch=plt.Rectangle((-half_field_length-5,-half_field_width-5),2*half_field_length+10,2*half_field_width+10,facecolor='#32CD32',alpha=0.8)
     ax.add_patch(pitch) 
 
     # Grouping objects
@@ -146,24 +144,26 @@ def plot_events(events,figax=None,field_dimensions=(106.,68.),color='r',alpha=0.
         
         if annotate_turn:
             ax.text(field_dimensions[0]/2-40,field_dimensions[1]/2+10,"e.g. '1:P2' -> 1rst Event from Player 2.",fontsize=10,bbox=dict(facecolor='#3C83F6', alpha=0.5,edgecolor='blue'), va = "top", ha="left")
-            annotate=str(turns)+": "
+            annotate_text=str(turns)+": "
         else:
-            annotate=""
+            annotate_text=""
 
         if annotate_player:# Annotate name of Player and little helper box.
-            annotate+=player.replace("Player","P")
+            annotate_text+=player.replace("Player","P")
         
         ax.plot(stX,stY,marker=marker,color=color)
-        ax.annotate(annotate,xy=(endX,endY),xytext=(stX,stY), alpha=alpha, arrowprops=dict(arrowstyle="->",color=color))
-        
-        
-        if not(to!=to): # Only increment when To is not nan
+        if not np.isnan(stX): # nan -> infinite for ax.text
+            ax.text(stX,stY,annotate_text,color='k', weight='bold')
             turns+=1
+        ax.annotate("",xy=(endX,endY),xytext=(stX,stY), alpha=alpha, arrowprops=dict(arrowstyle="->",color=color))
+        
+        
+            
     return fig,ax
     
 
     
-def plot_frame(home_series,away_series,field_dimensions=(106.,68.),figax=None,home_team_color='black',away_team_color='red',marker='o',annotate_player=False):
+def plot_frame(home_series,away_series,include_player_velocities=False,field_dimensions=(106.,68.),figax=None,home_team_color='black',away_team_color='red',marker='o',annotate_player=False,player_alpha=0.7):
     """
     Plots a frame with the positions of all the players and the ball in the field.All distances should be in meters.
     
@@ -177,6 +177,8 @@ def plot_frame(home_series,away_series,field_dimensions=(106.,68.),figax=None,ho
     field_dimensions:  Field dimensions in meters (Width x Height). Default is (106,68).
     marker: marker of event posistion. Default is 'o'.
     annotate_player: Annotate Player. Default is False.
+    include_plaer_velocities: Shows velocities of players. Default is False.
+    player_alpha: Alpha. Default is 0.7
     
     Returns
     -------
@@ -189,41 +191,18 @@ def plot_frame(home_series,away_series,field_dimensions=(106.,68.),figax=None,ho
     else: # overlay on existing pitch
         fig,ax=figax
         
-    # Get Players' x and y coordinates    
-    home_player_colums=[x for x in home_series.index if (re.match(r"Home_[0-9]+_[x|y]",x))]
-    away_player_colums=[x for x in away_series.index if (re.match(r"Away_[0-9]+_[x|y]",x))]
-
-    for i in range(len(home_player_colums)-1):
-        
-        # Skip double passing
-        if i%2!=0:
-            continue
-        
-        if annotate_player:# Annotate name of Player for Home Team
-            annotate_home="P"+home_player_colums[i].split("_")[1]
-        else:
-            annotate_home=""
+    for team,color in zip([home_series,away_series],[home_team_color,away_team_color]):
+        x_columns=[x for x in team.index if 'ball' not in x and x[-2:].lower()=='_x']
+        y_columns=[y for y in team.index if 'ball' not in y and y[-2:].lower()=='_y']
+        ax.plot(team[x_columns], team[y_columns], marker,color=color, alpha=player_alpha )
+        if include_player_velocities:
+            vx_columns=[x.replace("_x","_vx") for x in x_columns]
+            vy_columns=[y.replace("_y","_vy") for y in y_columns]
+            ax.quiver( team[x_columns], team[y_columns], team[vx_columns], team[vy_columns], color=color, scale_units='inches', scale=10,width=0.0025,headlength=5,headwidth=3,alpha=1,zorder=2)
             
-        # Plot one player from home team    
-        ax.plot(home_series[home_player_colums[i]],home_series[home_player_colums[i+1]],marker=marker,color=home_team_color)
-        ax.annotate(annotate_home,xy=(home_series[home_player_colums[i]],home_series[home_player_colums[i+1]]),color=home_team_color)
-        
-        
-    for i in range(len(away_player_colums)-1):
-        
-        # Skip double passing
-        if i%2!=0:
-            continue
-        
-        if annotate_player:# Annotate name of Player for Away Team
-            annotate_away="P"+away_player_colums[i].split("_")[1]
-        else:
-            annotate_away=""
+        if annotate_player:
+            [ ax.text( team[x]+0.5, team[y]+0.5, x.split('_')[1], fontsize=10, color=color  ) for x,y in zip(x_columns,y_columns) if not ( np.isnan(team[x]) or np.isnan(team[y]) ) ] 
             
-        # Plot one player from away team    
-        ax.plot(away_series[away_player_colums[i]],away_series[away_player_colums[i+1]],marker=marker,color=away_team_color) 
-        ax.annotate(annotate_away,xy=(away_series[away_player_colums[i]],away_series[away_player_colums[i+1]]),color=away_team_color)
-    
     # Plot the ball
     ax.plot(home_series["ball_x"],home_series["ball_y"],marker=marker,markersize=3,color='white')
     
@@ -231,10 +210,87 @@ def plot_frame(home_series,away_series,field_dimensions=(106.,68.),figax=None,ho
 
 
 
+def save_movie(tracking_home,tracking_away,file_path,file_name,fps=25,figax=None, field_dimensions = (106.0,68.0),include_player_velocities=False,home_team_color='black',away_team_color='red',marker='o',player_alpha=0.7):
+    """
+    Saves a movie based on the given indices of Tracking Data. It saves the file in file_path with name as the filename.mp4.
+    Indices must be the same for tracking_home and tracking_away.
+    
+    Parameters
+    ----------
+    tracking_home: pd.DataFrame with Tracking Data for Home team.
+    tracking_away: pd.DataFrame with Tracking Data for Away team.
+    file_path: Path for the movie to be saved at.
+    file_name: Name of the movie file.
+    fps: Frames Per Seconds
+    figax: Figure, Axis object of an existing pitch.Default is None.
+    field_dimensions:  Field dimensions in meters (Width x Height). Default is (106,68).
+    home_team_color: Color of Home Team Players
+    away_team_color: Color of Away Team Players
+    marker: marker for the Players. Default is 'o'.
+    include_plaer_velocities: Shows velocities of players. Default is False.
+    player_alpha: Alpha. Default is 0.7
+    
+    
+    """
 
+    # Check if the indices are exactly the same for home and away team.
+    assert np.all(list(tracking_home.index)==list(tracking_away.index)),"Tracking Home index should be same with Tracking Away index."
 
-
-
+    if figax==None: #create new pitch
+        fig,ax=plot_pitch(field_dimensions=field_dimensions)
+    else: # overlay on existing pitch
+        fig,ax=figax
+    fig.set_tight_layout(True)
+    
+    # Either away or home team index
+    index=tracking_away.index
+    
+    # Set Movie Settings
+    metadata=dict(title="Tracking Data",comment="Metrica tracking data movie")
+    ffmpeg=animation.FFMpegWriter(fps=fps,metadata=metadata)
+    
+    
+    file_path=os.path.join(file_path,file_name+".mp4")
+    
+    # Generating movie process
+    print("Generating movie..\nWait...")
+    
+    with ffmpeg.saving(fig=fig,outfile=file_path,dpi=100):
+        
+        # Get objects to be plotted per row
+        # Plot one row, then delete axis objects and get objects from next row.
+        for idx in index:
+            objects=[]
+            for team, color in zip([tracking_home.loc[idx],tracking_away.loc[idx]], [home_team_color,away_team_color]):
+                    
+                player_x_columns=[x for x in team.index if (re.match(r"Home_[0-9]+_x|Away_[0-9]+_x",x))]
+                player_y_columns=[y for y in team.index if (re.match(r"Home_[0-9]+_y|Away_[0-9]+_y",y))]
+                # Players' positions
+                obj,=ax.plot(team[player_x_columns],team[player_y_columns],marker,color=color,markersize=10,alpha=player_alpha)
+                objects.append(obj)
+                if include_player_velocities:
+                    vx_columns=[x.replace("_x","_vx") for x in player_x_columns]
+                    vy_columns=[y.replace("_y","_vy") for y in player_y_columns]
+                    obj=ax.quiver(team[player_x_columns],team[player_y_columns],team[vx_columns],team[vy_columns],color=color,alpha=1,
+                                  scale_units='inches', scale=10.,width=0.0015,headlength=5,headwidth=3,zorder=4)
+                    objects.append(obj)
+            # Plot ball position
+            obj,=ax.plot(team["ball_x"],team["ball_y"],marker,markersize=3,color='white')
+            objects.append(obj)
+            # Timer on top of the field
+            frame_minute=int(team["Time [s]"]/60.0)
+            frame_second=(team["Time [s]"]/60.0 - frame_minute)*60
+            timer_text="{}:{:.1f}".format(frame_minute,frame_second) # Timer like '2:40'
+            obj=ax.text(-8,field_dimensions[1]/2 +8,timer_text,bbox=dict(facecolor='#3C83F6', alpha=0.5,edgecolor='blue'))
+            objects.append(obj)
+            ffmpeg.grab_frame() #Grab the image information from the figure and save as a movie frame.
+            # Delete all axis objects to create the next frame
+            for object in objects:
+                object.remove()
+            
+        print("Ready")
+        plt.clf()
+        plt.close(fig)
 
 
 
