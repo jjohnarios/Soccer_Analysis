@@ -12,6 +12,7 @@ import matplotlib as mat
 import re
 import matplotlib.animation as animation
 import os
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 
 def plot_pitch(field_dimensions=(106.,68.)) :
@@ -182,7 +183,7 @@ def plot_frame(home_series,away_series,include_player_velocities=False,field_dim
     
     Returns
     -------
-    fig,ax : Figure , Axis onbjects of the frame plot.
+    fig,ax : Figure , Axis objects of the frame plot.
     
     """
     
@@ -291,6 +292,104 @@ def save_movie(tracking_home,tracking_away,file_path,file_name,fps=25,figax=None
         print("Ready")
         plt.clf()
         plt.close(fig)
+        
+        
+
+def plot_ball_position_at_goals(event,tracking_home,tracking_away):
+    '''
+    Plots ball position at goals of Home and Away Team.
+    Note, that ball position is measured as the bosition at the END FRAME of the event.
+    
+    Parameters
+    ----------
+    event: pd.DataFrame containing events.
+    tracking_home: pd.DataFrame with Tracking Data for Home team.
+    tracking_away: pd.DataFrame with Tracking Data for Away team.
+    Returns
+    -------
+    fig,ax1,ax2 : Figure , Axis objects of the  plot.
+    
+    '''
+    
+    # Goals
+    goals=event.loc[~(event["Subtype"].isna()) & (event["Subtype"].str.contains("-GOAL"))]
+    home_goal_indices=goals.loc[goals["Team"]=="Home","End Frame"]
+    away_goal_indices=goals.loc[goals["Team"]=="Away","End Frame"]
+    
+    home_ball_xy,away_ball_xy=[],[]
+    
+    for ind in home_goal_indices:
+        # Checking for Nan in case ball position was lost
+        if np.isnan(tracking_home.loc[ind,"ball_x"]):
+            home_ball_xy.append(tracking_home.loc[ind-3,["ball_x","ball_y"]].values)
+        else:
+            home_ball_xy.append(tracking_home.loc[ind,["ball_x","ball_y"]].values)
+        
+    for ind in away_goal_indices:
+        # Checking for Nan in case ball position was lost
+        if np.isnan(tracking_away.loc[ind,"ball_x"]): 
+            away_ball_xy.append(tracking_away.loc[ind-2,["ball_x","ball_y"]].values)
+        else:
+            away_ball_xy.append(tracking_away.loc[ind,["ball_x","ball_y"]].values)
+            
+    # Lists and in Same direction
+    away_ball_x=np.array([abs(53-abs(i[0])) for i in away_ball_xy])
+    away_ball_y=np.array([abs(i[1]) for i in away_ball_xy])
+    home_ball_x=np.array([abs(53-abs(i[0])) for i in home_ball_xy])
+    home_ball_y=np.array([abs(i[1]) for i in home_ball_xy])
+            
+    #loading Ball Image
+    BALL_PATH=os.path.join(os.getcwd(),"images","ball.png")
+    ball_img=OffsetImage(plt.imread(BALL_PATH), zoom=0.06)
+    
+    
+    fig, (ax1,ax2) =plt.subplots(2,1,figsize=(10,8),facecolor='silver')
+    #Setting plot titles
+    ax1.set_title("Away Goals' ball position")
+    ax2.set_title("Home Goals' ball position")
+    
+    # Based on Pitch dimensions found on the Internet in yards.
+    meters_per_yard=0.9144
+    goal_height=3*meters_per_yard
+    goal_line_width = 8*meters_per_yard
+    # Setting ticks
+    ax1.set_xticks(np.arange(-5,goal_line_width+5,1))
+    ax2.set_xticks(np.arange(-5,goal_line_width+5,1))
+    plt.yticks(np.arange(-5,goal_height+5,1))
+    
+    # Artists cannot be reused, so need to duplicate for every subplot.
+    # Drawing goal with 2 vertical and one horizontal line.
+    left_goalpost=plt.Line2D(np.array([0,0]),np.array([0,goal_height]),color='b',linewidth=1)
+    right_goalpost=plt.Line2D(np.array([goal_line_width,goal_line_width]),np.array([0,goal_height]),color='b',linewidth=1)
+    crossbar=plt.Line2D(np.array([0,goal_line_width]),np.array([goal_height,goal_height]),color='b',linewidth=1)
+    left_goalpost1=plt.Line2D(np.array([0,0]),np.array([0,goal_height]),color='b',linewidth=1)
+    right_goalpost1=plt.Line2D(np.array([goal_line_width,goal_line_width]),np.array([0,goal_height]),color='b',linewidth=1)
+    crossbar1=plt.Line2D(np.array([0,goal_line_width]),np.array([goal_height,goal_height]),color='b',linewidth=1)
+    for line in [left_goalpost,right_goalpost,crossbar]:
+        ax1.add_line(line)
+    for line in [left_goalpost1,right_goalpost1,crossbar1]:
+        ax2.add_line(line)
+        
+    # transparent points
+    ax1.scatter(away_ball_x,away_ball_y,alpha=0)
+    ax2.scatter(home_ball_x,home_ball_y,alpha=0)
+    
+    # Adding Ball Image on top of scatter points for each team
+    for x,y in zip(away_ball_x,away_ball_y):
+        ab1=AnnotationBbox(ball_img,(x,y),frameon=False)
+        ax1.add_artist(ab1)
+        
+    for x,y in zip(home_ball_x,home_ball_y):
+        ab2=AnnotationBbox(ball_img,(x,y),frameon=False)
+        ax2.add_artist(ab2)    
+    
+    
+    plt.tight_layout()
+    ax1.axis('off')
+    ax2.axis('off')
+    
+    return fig,ax1,ax2
+
 
 
 
