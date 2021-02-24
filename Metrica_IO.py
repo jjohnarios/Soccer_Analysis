@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+
+Input - Output Processes for Metrica Data.
+
 Inspiration by: Friends-of-Tracking-Data-LaurieOnTracking
 
 @author: Apatsidis Ioannis
@@ -115,6 +118,38 @@ def read_tracking_data(DATA_DIR: str,game_id: int , team: str):
     # Read the tracking Data
     tracking_data_df = pd.read_csv(csv_path, names=columns, index_col='Frame', skiprows=3)
     return tracking_data_df
+
+
+def get_goalkeeper_name(tracking_team):
+    
+    '''
+    Finds the name of the goalkeeper by checking who's closer to the goal line at KICK OFF (Frame 1).
+    Needs transforming coordinates system.
+    
+    Parameters
+    ----------
+    tracking_team: pd.Dataframe with the tracking data.
+    
+    Returns
+    -------
+    gk: name of Goalkeeper like "Away_25" or "Home_11"
+    '''
+    
+    
+    # Get all players , e.g. Home_1 , Away_2
+    players=np.unique(([x.split('_')[0]+'_'+x.split('_')[1] for x in tracking_team.columns if "Away_" in x or "Home_" in x]))
+    min_dist=float('inf')
+    gk=""
+    goal_line_coord=(68.,0) if "Home" in players[0] else (-68.,0)
+    # find distance from each player position to goal line
+    for p in players:
+        dist=np.sqrt(abs(goal_line_coord[0]-tracking_team.loc[1,p+"_x"])+abs(goal_line_coord[1]-tracking_team.loc[1,p+"_y"]))
+        if dist<min_dist:
+            min_dist=dist
+            gk=p
+    return gk
+
+    
     
     
     
