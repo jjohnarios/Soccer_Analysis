@@ -15,10 +15,6 @@ Working with Metrica's tracking and event data for Soccer Analytics. Providing i
 - White Dot represents the ball.
 - Arrows represent player velocities. Longer arrows indicate running faster.
 - Numbers indicate players jerseys numbers.
-- This plot was produced using this line of code:
-  ```python 
-  Metrica_Vizuals.plot_frame(tracking_home.loc[2400],tracking_away.loc[2400],include_player_velocities=True,annotate_player=True) 
-  ```
 
 <p align="center">
   <img src="images/Pitch_ReadMe.png" width="600" title="Pitch Vizualization">
