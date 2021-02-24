@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-
-Inspiration by: Friends-of-Tracking-Data-LaurieOnTracking
+Visualization plots and clips.
 
 @author: Apatsidis Ioannis
 """

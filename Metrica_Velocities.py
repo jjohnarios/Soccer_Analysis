@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 
-Inspiration by: Friends-of-Tracking-Data-LaurieOnTracking
+Calculation of player velocities.
+
 
 @author: Apatsidis Ioannis
 """

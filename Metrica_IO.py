@@ -3,7 +3,6 @@
 
 Input - Output Processes for Metrica Data.
 
-Inspiration by: Friends-of-Tracking-Data-LaurieOnTracking
 
 @author: Apatsidis Ioannis
 """

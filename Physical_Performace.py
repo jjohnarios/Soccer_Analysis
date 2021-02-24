@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Inspiration by: Friends-of-Tracking-Data-LaurieOnTracking
+
+Physical Performance metrics for players.
+
+
 
 @author: Apatsidis Ioannis
 """
