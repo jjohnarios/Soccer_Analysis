@@ -22,8 +22,8 @@ Working with Metrica's tracking and event data for Soccer Analytics. Providing i
 
 ## Resources
 For deep understanding of the formulas and the method used I suggest reading these amazing publications from William Spearman et al.:
-- [https://www.researchgate.net/publication/315166647_Physics-Based_Modeling_of_Pass_Probabilities_in_Soccer](Physics-Based Modeling of Pass Probabilities in Soccer)
-- [Beyond Expected Goals](Beyond Expected Goals)
+- [Physics-Based Modeling of Pass Probabilities in Soccer](https://www.researchgate.net/publication/315166647_Physics-Based_Modeling_of_Pass_Probabilities_in_Soccer)
+- [Beyond Expected Goals](https://www.researchgate.net/publication/327139841_Beyond_Expected_Goals)
 
 ## Acknowledgments
 - Thanks to "Friends of Tracking Data" for the useful content in soccer analytics.
