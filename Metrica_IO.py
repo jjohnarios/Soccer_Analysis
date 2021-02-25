@@ -76,9 +76,21 @@ def set_single_playing_direction(event,tracking_home,tracking_away):
     event,tracking_home,tracking_away: Updated Event and Tracking Data pd.DataFrames.
     """
     
+    # Checks if the away team starts from left side of field
+    players_away=np.unique(([x.split('_')[0]+'_'+x.split('_')[1] for x in tracking_away.columns if "Away_" in x]))
+    left_players_count=0
+    for p in players_away:
+        if tracking_away.loc[1,p+"_x"]<0:
+            left_players_count+=1 # +1 Player in the left of the center line
+    
+    if left_players_count>7: #Away team starts left side in KICK OFF
+        p=1 # Period to reverse is First Period
+    else:
+        p=2 # Period to reverse is Second Period
+    
     for df in [event,tracking_home,tracking_away]:
         xy_columns=[col for col in df.columns if col[-1].lower()=="x" or col[-1].lower()=="y"] # Columns ending with 'x' or 'y'
-        df.loc[df["Period"]==1,xy_columns]=df.loc[df["Period"]==1,xy_columns].apply(lambda x: x*(-1)) # Reversing coordinates
+        df.loc[df["Period"]==p,xy_columns]=df.loc[df["Period"]==p,xy_columns].apply(lambda x: x*(-1)) # Reversing coordinates
         
     return event,tracking_home,tracking_away
 
@@ -123,7 +135,7 @@ def get_goalkeeper_name(tracking_team):
     
     '''
     Finds the name of the goalkeeper by checking who's closer to the goal line at KICK OFF (Frame 1).
-    Needs transforming coordinates system.
+    Needs single direction transformation.
     
     Parameters
     ----------
