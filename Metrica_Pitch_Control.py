@@ -24,6 +24,10 @@ import numpy as np
 def get_model_parameters():
     '''
     Setting some parameters for the simplefied model based on the asssumptions made.
+    
+    Returns
+    -------
+    params: Dictionary with model parameters
     '''
     params={}
     params["ball_speed"]=15 # 15 m/s steady velocity
@@ -31,8 +35,17 @@ def get_model_parameters():
     params["reaction_time"]=0.7 # 0.7 m/s initial reaction time
     params["lambda"]=4.3 # 4.3 inverse seconds -> How fast can a player control the ball , Prob= lambda * Dt , Dt: time near the ball
     params["lambda_gk"]=4.3 * 3 # Goalkeeper has advantage of being able to catch the ball
-    params["control_time"]=0.25 # 0.25 seconds to control the ball
     params["sigma"]=0.45 # 0.45 seconds , standard deviation of sigmoid to add uncertainty of player arrival time
+    
+    # If a player arrives at target location control_time seconds before the next Player then the first one has enough time to control the
+    # ball so we don't need to calculate pitch control explicitly.
+    params["control_time"]=np.sqrt(3)*params["sigma"]/np.pi+1/params["lambda"] # seconds to control the ball , assuming same for def and att.
+    
+    # numerical parameters for model evaluation
+    params['int_step'] = 0.04 # integration timestep seconds dT
+    params['max_int_time'] = 10 # upper limit on integral time seconds
+    params['model_converge_tol'] = 0.01 # assume convergence when pitch control>0.99 at a given location.
+
     
     return params
 
@@ -51,7 +64,7 @@ class Player():
         Parameters
         ----------
         name: Player Name like "Home_23" or "Away_4"
-        team_tracking: Tracking Data for a single Frame
+        team_tracking: pd.Series with Tracking Data for a single Frame
         params: Model Parameters
         GK_NAME: Goalkeeper name like "Home_3" or "Away_15"
                 
@@ -60,12 +73,15 @@ class Player():
         self.name=name # Name like "Away_12"
         self.teamname=name.split("_")[0] # Team name like "Team" or "Home"
         self.reaction_time=params["reaction_time"] # Reaction Time 0.7 seconds
-        self.position=(team_tracking.loc[self.name+"_x"],team_tracking.loc[self.name+"_y"]) # (x,y) position
+        self.position=np.array([team_tracking.loc[self.name+"_x"],team_tracking.loc[self.name+"_y"]]) # (x,y) position
+        self.inframe= not np.any(np.isnan(self.position)) # Checks if player is in current frame or bench player
         self.max_vel=params["player_speed"] # Maximum player velocity 15m/s.
         self.sigma=params["sigma"] # Uncertainty to time_to_intercept
         self.lambda_param=params["lambda_gk"] if self.name==GK_NAME else params["lambda"] # 1/λ is time to control ball      
         
         self.__set_velocity(team_tracking) # Sets player velocities
+        
+        self.PPCF=0 # Potential Pitch Control Field
 
 
     
@@ -75,12 +91,12 @@ class Player():
         
         Parameters
         ----------
-        team_tracking: Tracking Data for a single Frame
+        team_tracking: pd.Series with Tracking Data for a single Frame
         '''
-        self.velocity=(team_tracking.loc[self.name+"_vx"],team_tracking.loc[self.name+"_vy"])
+        self.velocity=np.array([team_tracking.loc[self.name+"_vx"],team_tracking.loc[self.name+"_vy"]])
         
         if np.any(np.isnan(self.velocity)):
-            self.velocity=(0,0)
+            self.velocity=np.array([0,0])
         
     def get_time_to_intercept(self,target_pos):
         '''
@@ -96,11 +112,12 @@ class Player():
         ttt: Time to intercept
         
         '''
-        
+        self.PPCF=0
         
         reaction_pos=self.position+ self.velocity*self.reaction_time
+        dx=np.sqrt((target_pos[0]-reaction_pos[0])**2 + (target_pos[1]-reaction_pos[1])**2) # Euclidean Distance
         # After reaction time , player moves with steady velocity = maxvel.
-        tti= self.reaction_time+ (target_pos-reaction_pos)/self.maxvel
+        tti= self.reaction_time+ dx/self.max_vel
         
         return tti
         
@@ -129,6 +146,9 @@ class Player():
     
     
     def __str__(self):
+        '''
+        String represantation of a Player.
+        '''
         
         p_str=("Name: {0}\nTeam: {1}\nReaction Time: {2} seconds\nPosition(x,y): {3}\nSpeed(Max-steady): {4} m/s\n"
               "Current Velocity(vx,vy): {5}\nSigma: {6}\nLambda: {7}").format(self.name,
