@@ -2,7 +2,7 @@
  
 Working with Metrica's tracking and event data for Soccer Analytics. Providing insightful pitch visualizations and clips from soccer matches. 
  
-![Python](https://img.shields.io/badge/-Python-yellow)
+![Python](https://img.shields.io/badge/-Python-yellow) ![Jupyter Notebook](https://img.shields.io/badge/-JupyterNotebook-cyan)
 
 ## About the data
 - Two Sample Games in standar CSV format with synchronized Tracking and Event data (Metrica Sports).
