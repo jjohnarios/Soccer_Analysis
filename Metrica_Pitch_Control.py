@@ -49,6 +49,89 @@ def get_model_parameters():
     
     return params
 
+def init_players(team_tracking,team_name,params,GK_NAME):
+    '''
+    Initialises Player Objects for current frame
+    
+    Parameters
+    ----------
+    team_tracking: pd.Series with Tracking Data for a single Frame
+    team_name: name of Team like "Home", "Away"
+    params: dictionary with model parameters
+    GK_NAME: name of Goalkeeper like "Home_11" or "Away_25"
+    
+    Returns
+    -------
+    players_list: List with Player Objects in current Frame
+    '''
+    
+    # Get all players , e.g. Home_1 , Away_2
+    players=np.unique(([x.split('_')[0]+'_'+x.split('_')[1] for x in team_tracking.index if team_name in x]))
+    
+    players_list=[]
+    # Create Player object and add that to the returned list if Player is in currecnt frame
+    for p in players:
+        player=Player(p,team_tracking,params,GK_NAME)
+        if player.inframe:
+            players_list.append(player)
+    
+    return players_list
+    
+
+def check_offsides(attacking_team,attacking_players,defending_players,ball_start_pos,field_dimensions=(106.,68.),tol=0.2):
+    '''
+    Checks if any attacking player is offside in the current Frame.
+    A player is offside if:
+        They are in front of their own half of the field and the ball.
+        They are in front of the second last defender.
+    Doesn't take into consideration passive offside, that is players who are not involved.
+    
+    Parameters
+    ----------
+    attacking_team: Attacking team like "Home" or "Away"
+    attacking_players: list of Player Objects of the attacking team
+    defending_players: list of Player Objects of the defending team
+    ball_start_pos: tuple with (x,y) coordinates of the ball in the current Frame
+    field_dimensions: Field dimensions in meters (Width x Height). Default is (106,68).
+    tol: Tolerance for Offside in meters. Default value is 0.2 meters.
+    
+    Returns
+    -------
+    non_offside_attacking_players: List with all the attacking players who are not offside.
+    '''
+    
+    ball_x=ball_start_pos[0]
+    non_offside_attacking_players=[]
+    
+    x_def_positions=[player.position[0] for player in defending_players] # x coordinates of Defending players
+    
+    if attacking_team=="Home": # direction of attack --->
+        second_last_def_x_pos=sorted(x_def_positions,reverse=True)[1]+tol  # x position of second last defender + tol meters
+        
+        for player in attacking_players:
+            if player.position[0]<=ball_x or player.position[0]<=0: # Not Offside, behind the ball or behind center line
+                non_offside_attacking_players.append(player)
+            elif  player.position[0] <= second_last_def_x_pos: # Not Offside
+                non_offside_attacking_players.append(player)
+            else:
+                print("Player {} is OFFSIDE!".format(player.name))
+    else: # Away , direction of attack <----
+        second_last_def_x_pos=sorted(x_def_positions)[1]  -tol # x position of second last defender + tol meters
+        
+        for player in attacking_players:
+            if player.position[0]>=ball_x or player.position[0]>=0:# Not Offside, behind the ball or behind center line
+                non_offside_attacking_players.append(player)
+            elif player.position[0] >= second_last_def_x_pos: # Not Offside
+                non_offside_attacking_players.append(player)
+            else:
+                print("Player {} is OFFSIDE!".format(player.name))
+                
+                
+    return non_offside_attacking_players
+        
+        
+
+
 
 
 class Player():
