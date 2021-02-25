@@ -132,6 +132,164 @@ def check_offsides(attacking_team,attacking_players,defending_players,ball_start
         
 
 
+def find_pitch_control_for_event(event_id,event,tracking_home,tracking_away,params,GK_NAMES,field_dimensions=(106.,68.),num_grid_cells_x=53,offsides=True):
+    
+    '''
+    Calculates pitch control for an event for the entire field.
+    Field is divided to a grid.
+    
+    Parameters
+    ----------
+    event_id: int , should be a valid id
+    event: pd.Dataframe with Event Data.
+    tracking_home: pd.Dataframe with Tracking Data for Home Team.
+    tracking_away: pd.Dataframe with Tracking Data for Away Team.
+    params: dictionary with model parameters
+    GK_NAMES: tuple with goalkeeper names like (GK_Home_Team,GK_Away_Team)
+    field_dimensions: Field dimensions in meters (Width x Height). Default is (106,68).
+    num_grid_cells_x:Number of grid cells in x-axis to divide field_dimensions[0] to. Default is 53.
+    offsides: Take into consideration players who are offside , that is do not calculate their pitch control. Default value is True.
+    
+    Returns
+    -------
+    pc_grid_att: Pitch control grid containing pitch control probability for the attacking team.
+                 For defending team pc_grid_def= 1 - pc_grid_att
+    x_grid: Positions of centers of cells in x-axis (field length).
+    y_grid: Positions of centers of cells in y-axis (field width).
+    
+    '''
+    
+    # Check if the indices are exactly the same for home and away team.
+    assert np.all(list(tracking_home.index)==list(tracking_away.index)),"Tracking Home index should be same with Tracking Away index."
+    
+    pass_frame=event.loc[event_id,"Start Frame"]
+    team_with_possession=event.loc[event_id,"Team"]
+    ball_start_pos=event.loc[event_id,["Start_x","Start_y"]]
+    
+    num_grid_cells_y= field_dimensions[1]/(field_dimensions[0]/num_grid_cells_x)
+    grid_dimensions=(field_dimensions[0]/num_grid_cells_x,field_dimensions[0]/num_grid_cells_y) # Default 2x2 meters    
+    x_grid,y_grid=[],[]
+    
+    # Position of a cell of the grid is the xy coordinates of its center
+    # -  -  -
+    # -  @  -
+    # -  -  -
+    
+    # Calculating x positions
+    for i in range(num_grid_cells_x):
+        x_grid.append(-field_dimensions[0]/2 + (i*2+1)* (grid_dimensions[0]/2))
+    # Calculating y positions
+    for i in range(num_grid_cells_y):
+        y_grid.append(field_dimensions[1]/2 - (i*2+1)*(grid_dimensions[1]/2))
+        
+    # Pitch Control Grids for Attacking and Defending team    
+    pc_grid_att=np.zeros((num_grid_cells_x,num_grid_cells_y))
+    pc_grid_def=np.zeros((num_grid_cells_x,num_grid_cells_y))
+
+    # Initialise Players positions , velocities etc. for Home and Away Team
+    if team_with_possession=="Home":
+        attacking_players=init_players(tracking_home.loc[pass_frame],"Home",params,GK_NAMES[0])
+        defending_players=init_players(tracking_away.loc[pass_frame],"Away",params,GK_NAMES[1])
+    else: # Away
+        defending_players=init_players(tracking_home.loc[pass_frame],"Home",params,GK_NAMES[0])
+        attacking_players=init_players(tracking_away.loc[pass_frame],"Away",params,GK_NAMES[1])        
+        
+    # Do not calculate attacking players pitch control if they are offside    
+    if offsides:
+        attacking_players=check_offsides(team_with_possession,attacking_players,defending_players,ball_start_pos,field_dimensions)
+        
+    # For every cell calculate pitch control
+    for i in range(len(x_grid)):
+        for j in range(len(y_grid)):
+            target_pos=np.array([x_grid[i],y_grid[j]])
+            pc_grid_att[i,j],pc_grid_def[i,j]=__pitch_control_at_pos(target_pos,attacking_players,defending_players,ball_start_pos,params)
+    
+    #check probability sums within convergence
+    checksum=np.sum(pc_grid_att+pc_grid_def)/float(num_grid_cells_x*num_grid_cells_y)
+    assert 1-checksum< params["model_converge_tol"],"Checksum failed: {1.3f}".format(1-checksum)
+    
+    return pc_grid_att,x_grid,y_grid
+    
+
+def __pitch_control_at_pos(target_pos,attacking_players,defending_players,ball_start_pos,params):
+    
+    '''
+    Calculates Total Pitch Control of the attacking and defending team for a given ball position.
+    It is based on Spearman's Equation 6  at Physics-Based Modeling of Pass Probabilities in Soccer.
+    
+    Parameters
+    ----------
+    target_pos: np.array with (x,y) cordinates of the the target pos (i.e. center of a cell of the grid)
+    attacking_players: list of Player Objects of the attacking team
+    defending_players: list of Player Objects of the defending team
+    ball_start_pos:  tuple with (x,y) coordinates of the ball in the current Frame
+    params: dictionary with model parameters
+    
+    Returns
+    -------
+    pc_att[i-1]: np.array with total attacking players pitch control probability at the target pos (cell of grid).
+    pc_def[i-1]: np.array with total attacking players pitch control probability at the target pos (cell of grid).
+    
+    '''
+    
+    # Player with cell control means lowest value of "Time to intercept + Time to control"
+    
+    # Find ball_flight_time
+    if not ball_start_pos or np.any(np.isnan(ball_start_pos)):
+        ball_flight_time=0.
+    else:
+        ball_flight_time=np.sqrt((target_pos[0]-ball_start_pos[0])**2 + (target_pos[1]-ball_start_pos[1])**2) / params["ball_speed"]
+    
+    # Min arrival time of attacking and defending players
+    min_at_att=np.nanmin([player.get_time_to_intercept(target_pos) for player in attacking_players])
+    min_at_def=np.nanmin([player.get_time_to_intercept(target_pos) for player in defending_players])
+    
+    if (min_at_att-max(min_at_def,ball_flight_time)>=params["control_time"]):
+        # Defender has enough time to control the ball, before attacker arrives so no need to calculate pitch control
+        return 0,1
+    elif (min_at_def-max(min_at_att,ball_flight_time)>=params["control_time"]):
+        # Attacker has enough time to control the ball, before defender arrives so no need to calculate pitch control
+        return 1,0
+    else: # calculate pitch control
+        
+        # drop players who are far from target location (need more time)
+        attacking_players=[player for player in attacking_players if player.get_time_to_intercept(target_pos)-min_at_att < params["control_time"]]
+        defending_players=[player for player in defending_players if player.get_time_to_intercept(target_pos)-min_at_def < params["control_time"]]    
+        
+        # integration (int_step elements)
+        dt_array=np.arange(ball_flight_time-params['int_step'],ball_flight_time+params['max_int_time'],params['int_step'])
+        pc_att=np.zeros_like(dt_array) # Pitch Control Attacking Team
+        pc_def=np.zeros_like(dt_array) # Pitch Control Defending Team
+        
+        # Integrate Spearman's Equation until Convergence or exceeds array size, time limit (Eq. 6 at Physics-Based Modeling of Pass Probabilities in Soccer)
+        total_pc_prob=0
+        i=1
+        while 1-total_pc_prob>params['model_converge_tol'] and i<dt_array.size:
+            
+            T=dt_array[i] # Time T within a player can reach target pos
+            for player in attacking_players:
+                # calculate ball control probability for player in time interval T+int_step
+                pc_dT= (1-pc_att[i-1]-pc_def[i-1])*player.get_probability_to_intercept(T,target_pos)*player.lambda_param
+                assert pc_dT>=0," Invalid attacking player probability"
+                player.PPCF+= pc_dT*params["int_step"] # contribution of this player to pitch control
+                # summing all players contribution = total pitch control for attacking team
+                pc_att[i]+=player.PPCF
+            for player in defending_players:
+                # calculate ball control probability for player in time interval T+int_step
+                pc_dT= (1-pc_att[i-1]-pc_def[i-1])*player.get_probability_to_intercept(T,target_pos)*player.lambda_param
+                assert pc_dT>=0," Invalid attacking player probability"
+                player.PPCF+= pc_dT*params["int_step"] # contribution of this player to pitch control
+                # summing all players contribution = total pitch control for attacking team
+                pc_def[i]+=player.PPCF
+            
+            total_pc_prob=pc_def[i]+pc_att[i] # We need >0.99
+            i+=1
+        
+        if i>=dt_array.size:
+            print("Integration couldn't converge. Total Pitch Control Probability: ",total_pc_prob)
+        
+        return pc_att[i-1],pc_def[i-1]
+
 
 
 class Player():
