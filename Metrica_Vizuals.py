@@ -179,7 +179,7 @@ def plot_frame(home_series,away_series,include_player_velocities=False,field_dim
     field_dimensions:  Field dimensions in meters (Width x Height). Default is (106,68).
     marker: marker of event posistion. Default is 'o'.
     annotate_player: Annotate Player. Default is False.
-    include_plaer_velocities: Shows velocities of players. Default is False.
+    include_player_velocities: Shows velocities of players. Default is False.
     player_alpha: Alpha. Default is 0.7
     
     Returns
@@ -393,6 +393,28 @@ def plot_ball_position_at_goals(event,tracking_home,tracking_away):
 
 
 def plot_pitch_control_for_event(event_id,event,tracking_home,tracking_away,pc_att,x_grid,y_grid,annotate_player=False,field_dimensions = (106.0,68.0),include_player_velocities=False,alpha=0.6):
+    '''
+    Plot Pitch control for a single event.
+    By default gray indicates area in which Home Team Players have control, whereas for red Away Team Players.
+    
+    Parameters
+    ----------
+    event_id: int , should be a valid id
+    event: pd.Dataframe with Event Data.
+    tracking_home: pd.Dataframe with Tracking Data for Home Team.
+    tracking_away: pd.Dataframe with Tracking Data for Away Team.
+    pc_att: np.array with Pitch Control of Attacking Team, i.e. probability to get the ball at certain locations.
+    x_grid: np.array with positions of grid cells in x-axis
+    y_grid: np.array with positions of grid cells in y-axis
+    annotate_player: Annotate Player. Default is False.
+    field_dimensions:  Field dimensions in meters (Width x Height). Default is (106,68).
+    include_player_velocities: Shows velocities of players. Default is False.
+    alpha: Alpha of colors for pitch control. Default is 0.6
+    
+    Returns
+    -------
+    fig,ax: Figure and axis Objects of Pitch with pitch control for an event.
+    '''
     
     frame=event.loc[event_id,"Start Frame"]
     team_in_possession=event.loc[event_id,"Team"]
@@ -411,7 +433,7 @@ def plot_pitch_control_for_event(event_id,event,tracking_home,tracking_away,pc_a
     
     # interpolation: the one that works better
     # vmin,vmax=(0,1) because probability values for pitch control are between range(0,1)
-    # need to flip beacause of (y,x) -> (x,y)
+    # need to flip to get start upper left
     ax.imshow(np.flipud(pc_att),extent=(-field_dimensions[0]/2,field_dimensions[0]/2,-field_dimensions[1]/2,field_dimensions[1]/2),origin="upper", # Upper left is [0,0]
               interpolation="lanczos",cmap=cmap,vmin=0,vmax=1,alpha=alpha)
     
