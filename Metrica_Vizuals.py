@@ -12,15 +12,17 @@ import re
 import matplotlib.animation as animation
 import os
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+import matplotlib.colors 
 
 
-def plot_pitch(field_dimensions=(106.,68.)) :
+def plot_pitch(field_dimensions=(106.,68.),field_color="#32CD32") :
     """
     Visual represantation of Pitch based on given coordinates in Meters.
     
     Parameters
     ----------
     field_dimensions:  Field dimensions in meters (Width x Height).
+    field_color: Field color. Default is '#32CD32'(light green).
     
     Returns
     -------
@@ -89,7 +91,7 @@ def plot_pitch(field_dimensions=(106.,68.)) :
     right_goal=plt.Rectangle((half_field_length,-goal_line_width/2),goal_height,goal_line_width,edgecolor='b',facecolor='none')
     
     # Pitch Borders (+/- 5 Meters)
-    pitch=plt.Rectangle((-half_field_length-5,-half_field_width-5),2*half_field_length+10,2*half_field_width+10,facecolor='#32CD32',alpha=0.8)
+    pitch=plt.Rectangle((-half_field_length-5,-half_field_width-5),2*half_field_length+10,2*half_field_width+10,facecolor=field_color,alpha=0.8)
     ax.add_patch(pitch) 
 
     # Grouping objects
@@ -163,7 +165,7 @@ def plot_events(events,figax=None,field_dimensions=(106.,68.),color='r',alpha=0.
     
 
     
-def plot_frame(home_series,away_series,include_player_velocities=False,field_dimensions=(106.,68.),figax=None,home_team_color='black',away_team_color='red',marker='o',annotate_player=False,player_alpha=0.7):
+def plot_frame(home_series,away_series,include_player_velocities=False,field_dimensions=(106.,68.),figax=None,home_team_color='black',away_team_color='red',ball_color="white",marker='o',annotate_player=False,player_alpha=0.7,markersize=3):
     """
     Plots a frame with the positions of all the players and the ball in the field.All distances should be in meters.
     
@@ -204,7 +206,7 @@ def plot_frame(home_series,away_series,include_player_velocities=False,field_dim
             [ ax.text( team[x]+0.5, team[y]+0.5, x.split('_')[1], fontsize=10, color=color  ) for x,y in zip(x_columns,y_columns) if not ( np.isnan(team[x]) or np.isnan(team[y]) ) ] 
             
     # Plot the ball
-    ax.plot(home_series["ball_x"],home_series["ball_y"],marker=marker,markersize=3,color='white')
+    ax.plot(home_series["ball_x"],home_series["ball_y"],marker=marker,markersize=markersize,color=ball_color)
     
     return fig,ax
 
@@ -390,7 +392,32 @@ def plot_ball_position_at_goals(event,tracking_home,tracking_away):
     return fig,ax1,ax2
 
 
-
+def plot_pitch_control_for_event(event_id,event,tracking_home,tracking_away,pc_att,x_grid,y_grid,annotate_player=False,field_dimensions = (106.0,68.0),include_player_velocities=False,alpha=0.6):
+    
+    frame=event.loc[event_id,"Start Frame"]
+    team_in_possession=event.loc[event_id,"Team"]
+    
+    fig,ax=plot_pitch(field_dimensions,field_color="white")
+    plot_frame(tracking_home.loc[frame],tracking_away.loc[frame],include_player_velocities,field_dimensions,player_alpha=0.9,figax=(fig,ax),
+               annotate_player=annotate_player,ball_color='green',markersize=8.2)
+    plot_events(event.loc[event_id:event_id],figax=(fig,ax))
+    
+    if team_in_possession=="Away":
+        colors=["black","white","red"] #0-->1
+    else: # Home in possession
+        colors=["red","white","black"] #0-->1
+    cmap=matplotlib.colors.LinearSegmentedColormap.from_list('pc_colors',colors) # Needs Default number of bins(256)!!
+    
+    
+    # interpolation: the one that works better
+    # vmin,vmax=(0,1) because probability values for pitch control are between range(0,1)
+    # need to flip beacause of (y,x) -> (x,y)
+    ax.imshow(np.flipud(pc_att),extent=(-field_dimensions[0]/2,field_dimensions[0]/2,-field_dimensions[1]/2,field_dimensions[1]/2),origin="upper", # Upper left is [0,0]
+              interpolation="lanczos",cmap=cmap,vmin=0,vmax=1,alpha=alpha)
+    
+    
+    return fig,ax
+    
 
 
 
