@@ -207,8 +207,6 @@ def find_pitch_control_for_event(event_id,event,tracking_home,tracking_away,para
         for j in range(len(x_grid)):
             target_pos=np.array([x_grid[j],y_grid[i]])
             pc_grid_att[i,j],pc_grid_def[i,j]=pitch_control_at_pos(target_pos,attacking_players,defending_players,ball_start_pos,params)
-            #pc_grid_att[i,j],pc_grid_def[i,j]=calculate_pitch_control_at_target(target_pos,attacking_players,defending_players,ball_start_pos,params)
-            #print(pc_grid_att[i,j],pc_grid_def[i,j])
     #check probability sums within convergence
     checksum=np.sum(pc_grid_att+pc_grid_def)/float(num_grid_cells_x*num_grid_cells_y)
     assert 1-checksum< params["model_converge_tol"],"Checksum failed: {1.3f}".format(1-checksum)
@@ -295,8 +293,7 @@ def pitch_control_at_pos(target_pos,attacking_players,defending_players,ball_sta
         if i>=dt_array.size:
             print("Integration couldn't converge. Total Pitch Control Probability: ",total_pc_prob)
         
-        print(pc_att[i-1])
-        print(pc_def[i-1])
+
         return pc_att[i-1],pc_def[i-1]
 
 
