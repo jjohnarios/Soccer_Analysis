@@ -30,16 +30,18 @@ def get_model_parameters():
     params: Dictionary with model parameters
     '''
     params={}
-    params["ball_speed"]=15 # 15 m/s steady velocity
-    params["player_speed"]=5 # 5 m/s steady velocity
+    params["ball_speed"]=15. # 15 m/s steady velocity
+    params["player_speed"]=5. # 5 m/s steady velocity
     params["reaction_time"]=0.7 # 0.7 m/s initial reaction time
-    params["lambda"]=4.3 # 4.3 inverse seconds -> How fast can a player control the ball , Prob= lambda * Dt , Dt: time near the ball
+    # 4.3 inverse seconds -> How fast can a player control the ball , Prob= lambda * Dt , Dt: time near the ball
+    params["lambda_att"]=4.3 # attack
+    params["lambda_def"]=4.3 # defence (If multiplied by 1.72 based on Spearman , defenders have an advantage)
     params["lambda_gk"]=4.3 * 3 # Goalkeeper has advantage of being able to catch the ball
     params["sigma"]=0.45 # 0.45 seconds , standard deviation of sigmoid to add uncertainty of player arrival time
     
     # If a player arrives at target location control_time seconds before the next Player then the first one has enough time to control the
     # ball so we don't need to calculate pitch control explicitly.
-    params["control_time"]=np.sqrt(3)*params["sigma"]/np.pi+1/params["lambda"] # seconds to control the ball , assuming same for def and att.
+    params["control_time"]=3*np.log(10) * (np.sqrt(3)*params['sigma']/np.pi + 1/params['lambda_att']) # seconds to control the ball , assuming same for def and att.
     
     # numerical parameters for model evaluation
     params['int_step'] = 0.04 # integration timestep seconds dT
@@ -72,7 +74,7 @@ def init_players(team_tracking,team_name,params,GK_NAME):
     # Create Player object and add that to the returned list if Player is in currecnt frame
     for p in players:
         player=Player(p,team_tracking,params,GK_NAME)
-        if player.inframe:
+        if player.inframe: # In current frame
             players_list.append(player)
     
     return players_list
@@ -100,7 +102,7 @@ def check_offsides(attacking_team,attacking_players,defending_players,ball_start
     non_offside_attacking_players: List with all the attacking players who are not offside.
     '''
     
-    ball_x=ball_start_pos[0]
+    ball_x=ball_start_pos[0] # Start X
     non_offside_attacking_players=[]
     
     x_def_positions=[player.position[0] for player in defending_players] # x coordinates of Defending players
@@ -110,7 +112,7 @@ def check_offsides(attacking_team,attacking_players,defending_players,ball_start
         
         for player in attacking_players:
             if player.position[0]<=ball_x or player.position[0]<=0: # Not Offside, behind the ball or behind center line
-                non_offside_attacking_players.append(player)
+                non_offside_attacking_players.append(player) 
             elif  player.position[0] <= second_last_def_x_pos: # Not Offside
                 non_offside_attacking_players.append(player)
             else:
@@ -164,10 +166,11 @@ def find_pitch_control_for_event(event_id,event,tracking_home,tracking_away,para
     
     pass_frame=event.loc[event_id,"Start Frame"]
     team_with_possession=event.loc[event_id,"Team"]
-    ball_start_pos=event.loc[event_id,["Start_x","Start_y"]]
+    ball_start_pos=event.loc[event_id,["Start X","Start Y"]]
+    ball_start_pos=np.array(ball_start_pos,dtype='float')
     
-    num_grid_cells_y= field_dimensions[1]/(field_dimensions[0]/num_grid_cells_x)
-    grid_dimensions=(field_dimensions[0]/num_grid_cells_x,field_dimensions[0]/num_grid_cells_y) # Default 2x2 meters    
+    num_grid_cells_y= int(field_dimensions[1]/(field_dimensions[0]/num_grid_cells_x))
+    grid_dimensions=(field_dimensions[0]/num_grid_cells_x,field_dimensions[1]/num_grid_cells_y) # Default 2x2 meters    
     x_grid,y_grid=[],[]
     
     # Position of a cell of the grid is the xy coordinates of its center
@@ -181,10 +184,12 @@ def find_pitch_control_for_event(event_id,event,tracking_home,tracking_away,para
     # Calculating y positions
     for i in range(num_grid_cells_y):
         y_grid.append(field_dimensions[1]/2 - (i*2+1)*(grid_dimensions[1]/2))
-        
+    x_grid=np.array(x_grid)
+    y_grid=np.array(y_grid)*np.array([-1])
     # Pitch Control Grids for Attacking and Defending team    
-    pc_grid_att=np.zeros((num_grid_cells_x,num_grid_cells_y))
-    pc_grid_def=np.zeros((num_grid_cells_x,num_grid_cells_y))
+    # In shape (y,x) not (x,y)
+    pc_grid_att=np.zeros((num_grid_cells_y,num_grid_cells_x))
+    pc_grid_def=np.zeros((num_grid_cells_y,num_grid_cells_x))
 
     # Initialise Players positions , velocities etc. for Home and Away Team
     if team_with_possession=="Home":
@@ -196,14 +201,14 @@ def find_pitch_control_for_event(event_id,event,tracking_home,tracking_away,para
         
     # Do not calculate attacking players pitch control if they are offside    
     if offsides:
-        attacking_players=check_offsides(team_with_possession,attacking_players,defending_players,ball_start_pos,field_dimensions)
-        
+        attacking_players=check_offsides(team_with_possession,attacking_players,defending_players,ball_start_pos,field_dimensions) 
     # For every cell calculate pitch control
-    for i in range(len(x_grid)):
-        for j in range(len(y_grid)):
-            target_pos=np.array([x_grid[i],y_grid[j]])
-            pc_grid_att[i,j],pc_grid_def[i,j]=__pitch_control_at_pos(target_pos,attacking_players,defending_players,ball_start_pos,params)
-    
+    for i in range(len(y_grid)):
+        for j in range(len(x_grid)):
+            target_pos=np.array([x_grid[j],y_grid[i]])
+            pc_grid_att[i,j],pc_grid_def[i,j]=pitch_control_at_pos(target_pos,attacking_players,defending_players,ball_start_pos,params)
+            #pc_grid_att[i,j],pc_grid_def[i,j]=calculate_pitch_control_at_target(target_pos,attacking_players,defending_players,ball_start_pos,params)
+            #print(pc_grid_att[i,j],pc_grid_def[i,j])
     #check probability sums within convergence
     checksum=np.sum(pc_grid_att+pc_grid_def)/float(num_grid_cells_x*num_grid_cells_y)
     assert 1-checksum< params["model_converge_tol"],"Checksum failed: {1.3f}".format(1-checksum)
@@ -211,7 +216,7 @@ def find_pitch_control_for_event(event_id,event,tracking_home,tracking_away,para
     return pc_grid_att,x_grid,y_grid
     
 
-def __pitch_control_at_pos(target_pos,attacking_players,defending_players,ball_start_pos,params):
+def pitch_control_at_pos(target_pos,attacking_players,defending_players,ball_start_pos,params):
     
     '''
     Calculates Total Pitch Control of the attacking and defending team for a given ball position.
@@ -235,14 +240,15 @@ def __pitch_control_at_pos(target_pos,attacking_players,defending_players,ball_s
     # Player with cell control means lowest value of "Time to intercept + Time to control"
     
     # Find ball_flight_time
-    if not ball_start_pos or np.any(np.isnan(ball_start_pos)):
+    if np.any(np.isnan(ball_start_pos)):
         ball_flight_time=0.
     else:
         ball_flight_time=np.sqrt((target_pos[0]-ball_start_pos[0])**2 + (target_pos[1]-ball_start_pos[1])**2) / params["ball_speed"]
-    
     # Min arrival time of attacking and defending players
     min_at_att=np.nanmin([player.get_time_to_intercept(target_pos) for player in attacking_players])
     min_at_def=np.nanmin([player.get_time_to_intercept(target_pos) for player in defending_players])
+    
+
     
     if (min_at_att-max(min_at_def,ball_flight_time)>=params["control_time"]):
         # Defender has enough time to control the ball, before attacker arrives so no need to calculate pitch control
@@ -251,43 +257,46 @@ def __pitch_control_at_pos(target_pos,attacking_players,defending_players,ball_s
         # Attacker has enough time to control the ball, before defender arrives so no need to calculate pitch control
         return 1,0
     else: # calculate pitch control
+        # keep ONLY players who are not far from target location (need time to reach target < control_time of the one reached already)
+        defending_players=[player for player in defending_players if player.time_to_intercept-min_at_def < params["control_time"]]
+        attacking_players=[player for player in attacking_players if player.time_to_intercept-min_at_att < params["control_time"]]
         
-        # drop players who are far from target location (need more time)
-        attacking_players=[player for player in attacking_players if player.get_time_to_intercept(target_pos)-min_at_att < params["control_time"]]
-        defending_players=[player for player in defending_players if player.get_time_to_intercept(target_pos)-min_at_def < params["control_time"]]    
-        
+
         # integration (int_step elements)
         dt_array=np.arange(ball_flight_time-params['int_step'],ball_flight_time+params['max_int_time'],params['int_step'])
         pc_att=np.zeros_like(dt_array) # Pitch Control Attacking Team
         pc_def=np.zeros_like(dt_array) # Pitch Control Defending Team
         
         # Integrate Spearman's Equation until Convergence or exceeds array size, time limit (Eq. 6 at Physics-Based Modeling of Pass Probabilities in Soccer)
-        total_pc_prob=0
+        total_pc_prob=0.0
         i=1
         while 1-total_pc_prob>params['model_converge_tol'] and i<dt_array.size:
             
             T=dt_array[i] # Time T within a player can reach target pos
             for player in attacking_players:
                 # calculate ball control probability for player in time interval T+int_step
-                pc_dT= (1-pc_att[i-1]-pc_def[i-1])*player.get_probability_to_intercept(T,target_pos)*player.lambda_param
+                
+                pc_dT= (1-pc_att[i-1]-pc_def[i-1])*player.get_probability_to_intercept(T)*player.lambda_att
                 assert pc_dT>=0," Invalid attacking player probability"
                 player.PPCF+= pc_dT*params["int_step"] # contribution of this player to pitch control
                 # summing all players contribution = total pitch control for attacking team
+
                 pc_att[i]+=player.PPCF
             for player in defending_players:
                 # calculate ball control probability for player in time interval T+int_step
-                pc_dT= (1-pc_att[i-1]-pc_def[i-1])*player.get_probability_to_intercept(T,target_pos)*player.lambda_param
-                assert pc_dT>=0," Invalid attacking player probability"
+                pc_dT= (1-pc_att[i-1]-pc_def[i-1])*player.get_probability_to_intercept(T)*player.lambda_def
+                assert pc_dT>=0," Invalid defending player probability"
                 player.PPCF+= pc_dT*params["int_step"] # contribution of this player to pitch control
                 # summing all players contribution = total pitch control for attacking team
                 pc_def[i]+=player.PPCF
-            
             total_pc_prob=pc_def[i]+pc_att[i] # We need >0.99
             i+=1
         
         if i>=dt_array.size:
             print("Integration couldn't converge. Total Pitch Control Probability: ",total_pc_prob)
         
+        print(pc_att[i-1])
+        print(pc_def[i-1])
         return pc_att[i-1],pc_def[i-1]
 
 
@@ -318,7 +327,8 @@ class Player():
         self.inframe= not np.any(np.isnan(self.position)) # Checks if player is in current frame or bench player
         self.max_vel=params["player_speed"] # Maximum player velocity 15m/s.
         self.sigma=params["sigma"] # Uncertainty to time_to_intercept
-        self.lambda_param=params["lambda_gk"] if self.name==GK_NAME else params["lambda"] # 1/λ is time to control ball      
+        self.lambda_att=params["lambda_att"]
+        self.lambda_def=params["lambda_gk"] if self.name==GK_NAME else params["lambda_def"] # 1/λ is time to control ball      
         
         self.__set_velocity(team_tracking) # Sets player velocities
         
@@ -353,18 +363,19 @@ class Player():
         ttt: Time to intercept
         
         '''
-        self.PPCF=0
+        self.PPCF=0 # resetting to zero
         
         reaction_pos=self.position+ self.velocity*self.reaction_time
         dx=np.sqrt((target_pos[0]-reaction_pos[0])**2 + (target_pos[1]-reaction_pos[1])**2) # Euclidean Distance
         # After reaction time , player moves with steady velocity = maxvel.
         tti= self.reaction_time+ dx/self.max_vel
+        self.time_to_intercept=tti # I need this for get_probability_to_intercept
         
         return tti
         
         
         
-    def get_probability_to_intercept(self,T,target_pos):
+    def get_probability_to_intercept(self,T):
         '''
         Calculates the probability for a Player to intercept the ball at T time.
         P_int(T)=1/(1+ e^(-(T-t_int)/(√3 σ/π)) )
@@ -379,10 +390,7 @@ class Player():
         prob: Probability to intercept.
 
         '''
-        
-        time_to_intercept=self.get_probability_to_intercept(target_pos)
-        
-        prob=self.reaction_time+ 1/(1+np.exp(- (T - time_to_intercept)/((np.sqrt(3)*self.sigma)/np.pi)))
+        prob = 1/(1. + np.exp( -np.pi/np.sqrt(3.0)/self.sigma * (T-self.time_to_intercept) ) )
         return prob
     
     
@@ -392,9 +400,9 @@ class Player():
         '''
         
         p_str=("Name: {0}\nTeam: {1}\nReaction Time: {2} seconds\nPosition(x,y): {3}\nSpeed(Max-steady): {4} m/s\n"
-              "Current Velocity(vx,vy): {5}\nSigma: {6}\nLambda: {7}").format(self.name,
+              "Current Velocity(vx,vy): {5}\nSigma: {6}\nLambda Att: {7}\nLambda Def: {8}\nPPCF: {9}").format(self.name,
                           self.teamname,self.reaction_time,self.position,
-                          self.max_vel,self.velocity,self.sigma,self.lambda_param)
+                          self.max_vel,self.velocity,self.sigma,self.lambda_att,self.lambda_def,self.PPCF)
         return p_str
     
     
