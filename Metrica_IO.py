@@ -151,7 +151,7 @@ def get_goalkeeper_name(tracking_team):
     players=np.unique(([x.split('_')[0]+'_'+x.split('_')[1] for x in tracking_team.columns if "Away_" in x or "Home_" in x]))
     min_dist=float('inf')
     gk=""
-    goal_line_coord=(68.,0) if "Home" in players[0] else (-68.,0)
+    goal_line_coord=(-68.,0) if "Home" in players[0] else (68.,0)
     # find distance from each player position to goal line
     for p in players:
         dist=np.sqrt(abs(goal_line_coord[0]-tracking_team.loc[1,p+"_x"])+abs(goal_line_coord[1]-tracking_team.loc[1,p+"_y"]))
