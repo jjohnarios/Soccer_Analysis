@@ -419,15 +419,17 @@ def plot_pitch_control_for_event(event_id,event,tracking_home,tracking_away,pc_a
     frame=event.loc[event_id,"Start Frame"]
     team_in_possession=event.loc[event_id,"Team"]
     
-    fig,ax=plot_pitch(field_dimensions,field_color="white")
-    plot_frame(tracking_home.loc[frame],tracking_away.loc[frame],include_player_velocities,field_dimensions,player_alpha=0.9,figax=(fig,ax),
-               annotate_player=annotate_player,ball_color='green',markersize=8.2)
-    plot_events(event.loc[event_id:event_id],figax=(fig,ax))
-    
     if team_in_possession=="Away":
         colors=["black","white","red"] #0-->1
     else: # Home in possession
         colors=["red","white","black"] #0-->1
+    
+    fig,ax=plot_pitch(field_dimensions,field_color="white")
+    plot_frame(tracking_home.loc[frame],tracking_away.loc[frame],include_player_velocities,field_dimensions,player_alpha=0.9,figax=(fig,ax),
+               annotate_player=annotate_player,ball_color='green',markersize=8.2)
+    plot_events(event.loc[event_id:event_id],figax=(fig,ax),color=colors[2])
+    
+
     cmap=matplotlib.colors.LinearSegmentedColormap.from_list('pc_colors',colors) # Needs Default number of bins(256)!!
     
     
