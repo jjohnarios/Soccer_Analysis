@@ -1,6 +1,7 @@
  # Soccer Data Analysis  :soccer:
  
-Working with Metrica's tracking and event data for Soccer Analytics. Providing insightful pitch visualizations and clips from soccer matches. 
+Working with Metrica's tracking and event data for Soccer Analytics. Providing insightful pitch visualizations and clips from soccer matches.
+Pitch Control to find controlled regions from teams is provided.
  
 ![Python](https://img.shields.io/badge/-Python-yellow) ![Jupyter Notebook](https://img.shields.io/badge/-JupyterNotebook-cyan)
 
@@ -27,6 +28,11 @@ Working with Metrica's tracking and event data for Soccer Analytics. Providing i
 - Red regions are controlled by Away Team (red color :red_circle:)
 - Green Dot represents the ball.
 - Player 6 passes at an area controlled by his teammate Player 4. That indicates higher success pass probability.
+
+<p align="center">
+  <img src="images/Pitch_Control_Readme.png" width="600" title="Pitch Control for certain frame">
+</p>
+
 
 ## Resources
 For deep understanding of the formulas and the method used I suggest reading these amazing publications from William Spearman et al.:
