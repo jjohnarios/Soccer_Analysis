@@ -20,6 +20,14 @@ Working with Metrica's tracking and event data for Soccer Analytics. Providing i
   <img src="images/Pitch_ReadMe.png" width="600" title="Pitch Vizualization">
 </p>
 
+## Pitch Control
+- How Teams control regions,pass probability for an imaginary ball placed at every point on the pitch.
+- Pitch Control at a Target Location is the probability that a team or a player will be able to control the ball if it were at that location.
+- Gray regions are controlled by Home Team (black color :black_circle:)
+- Red regions are controlled by Away Team (red color :red_circle:)
+- Green Dot represents the ball.
+- Player 6 passes at an area controlled by his teammate Player 4. That indicates higher success pass probability.
+
 ## Resources
 For deep understanding of the formulas and the method used I suggest reading these amazing publications from William Spearman et al.:
 - [Physics-Based Modeling of Pass Probabilities in Soccer](https://www.researchgate.net/publication/315166647_Physics-Based_Modeling_of_Pass_Probabilities_in_Soccer)
