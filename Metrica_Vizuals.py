@@ -15,7 +15,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib.colors 
 
 
-def plot_pitch(field_dimensions=(106.,68.),field_color="#32CD32") :
+def plot_pitch(field_dimensions=(106.,68.),field_color="#32CD32",alpha=0.8) :
     """
     Visual represantation of Pitch based on given coordinates in Meters.
     
@@ -23,6 +23,7 @@ def plot_pitch(field_dimensions=(106.,68.),field_color="#32CD32") :
     ----------
     field_dimensions:  Field dimensions in meters (Width x Height).
     field_color: Field color. Default is '#32CD32'(light green).
+    alpha: alpha of background color.
     
     Returns
     -------
@@ -91,7 +92,7 @@ def plot_pitch(field_dimensions=(106.,68.),field_color="#32CD32") :
     right_goal=plt.Rectangle((half_field_length,-goal_line_width/2),goal_height,goal_line_width,edgecolor='b',facecolor='none')
     
     # Pitch Borders (+/- 5 Meters)
-    pitch=plt.Rectangle((-half_field_length-5,-half_field_width-5),2*half_field_length+10,2*half_field_width+10,facecolor=field_color,alpha=0.8)
+    pitch=plt.Rectangle((-half_field_length-5,-half_field_width-5),2*half_field_length+10,2*half_field_width+10,facecolor=field_color,alpha=0.2)
     ax.add_patch(pitch) 
 
     # Grouping objects
@@ -443,11 +444,32 @@ def plot_pitch_control_for_event(event_id,event,tracking_home,tracking_away,pc_a
     return fig,ax
     
 
-
-
-
-
-
+def plot_EPV_grid(epv_grid,attacking_direction,field_dimensions=(106.0,68.0)):
+    '''
+    Plots EPV grid.
+    
+    Parameters
+    ----------
+    epv_grid: Preloaded epv_grid. Default 32x50
+    attacking_direction: 1 if left to right (Home Team), -1 if right to left (Away Team)
+    field_dimensions:  Field dimensions in meters (Width x Height). Default is (106,68).
+    
+    '''
+    
+    if attacking_direction==1: # Home team
+        cmap='Greys'
+    elif attacking_direction==-1: # Away team
+        cmap='Reds'
+        epv_grid=np.fliplr(epv_grid) # reverse direction
+    else:
+        raise Exception("Invalid team name.")
+    
+    
+    fig,ax=plot_pitch(field_dimensions,field_color="white",alpha=0.2)
+    
+    # None interpolation looks like squares
+    ax.imshow(epv_grid,extent=(-field_dimensions[0]/2,field_dimensions[0]/2,-field_dimensions[1]/2,field_dimensions[1]/2), # Upper left is [0,0]
+              cmap=cmap,norm=matplotlib.colors.Normalize(vmin=0,vmax=0.6))
 
 
 
