@@ -160,7 +160,28 @@ def get_goalkeeper_name(tracking_team):
             gk=p
     return gk
 
+def find_attacking_direction(team):
+    '''
+    Finds attacking direction of given team.
+    Requires setting single player direction.
     
+    Parameters
+    ----------
+    team: Name of team. "Home" or "Away".
+    
+    Returns
+    -------
+    1: left to right
+    -1: right to left
+    '''
+    
+    
+    if team=="Home":
+        return 1 # 1 indicates attacking from left to right
+    elif team=="Away":
+        return -1 # -1 indicates attacking from right to left
+    else:
+        raise Exception("Invalid team name.")
     
     
     
