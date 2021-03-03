@@ -88,3 +88,52 @@ def __get_EPV_at_location(start_pos,epv_grid,team_with_possession,field_dimensio
     
 
 
+def calculate_EPV_added(event_id,event,tracking_home,tracking_away,GK_NAMES,params,epv_grid):
+    '''
+    Calculates the EPV added by a pass.
+    
+    Parameters
+    ----------
+    event_id: int , should be a valid id
+    event: pd.Dataframe with Event Data.
+    tracking_home: pd.Dataframe with Tracking Data for Home Team.
+    tracking_away: pd.Dataframe with Tracking Data for Away Team.
+    GK_NAMES: tuple with goalkeeper names like (GK_Home_Team,GK_Away_Team)
+    params: dictionary with model parameters
+    epv_grid: Grid with Expected possession values at each cell of the grid.
+    
+    '''
+    
+    # Starting and Ending Frame
+    start_frame,end_frame=event.loc[event_id,["Start Frame","End Frame"]].values
+    # Ball Start and Target position
+    start_pos=np.array(event.loc[event_id,["Start X","Start Y"]])
+    target_pos=np.array(event.loc[event_id,["End X","End Y"]])
+    # Attacking team
+    team_with_possession=event.loc[event_id,"Team"]
+    
+    # Initialise Players positions , velocities etc. for Home and Away Team
+    if team_with_possession=="Home":
+        attacking_players=mpc.init_players(tracking_home.loc[start_frame],"Home",params,GK_NAMES[0])
+        defending_players=mpc.init_players(tracking_away.loc[start_frame],"Away",params,GK_NAMES[1])
+    else: # Away
+        defending_players=mpc.init_players(tracking_home.loc[start_frame],"Home",params,GK_NAMES[0])
+        attacking_players=mpc.init_players(tracking_away.loc[start_frame],"Away",params,GK_NAMES[1])   
+    
+    attacking_players=mpc.check_offsides(team_with_possession,attacking_players,defending_players,start_pos)
+    
+    # Pitch Control for start pos
+    pc_att_start,_=mpc.pitch_control_at_pos(start_pos,attacking_players,defending_players,start_pos,params)
+    # Pitch Control for target pos
+    pc_att_target,_=mpc.pitch_control_at_pos(target_pos,attacking_players,defending_players,start_pos,params)
+        
+    # EPV for start pos
+    epv_start=__get_EPV_at_location(start_pos,epv_grid,team_with_possession)
+    #EPV for target pos
+    epv_target=__get_EPV_at_location(target_pos,epv_grid,team_with_possession)
+    
+    #Expected value added of the passing option is PC(target)*EPV(target) - PC(start)*EPV(start)
+    epv_added=pc_att_target*epv_target -pc_att_start*epv_start
+    
+    return epv_added
+    
