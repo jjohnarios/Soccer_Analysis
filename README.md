@@ -38,6 +38,7 @@ Pitch Control to find controlled regions from teams is provided.
 For deep understanding of the formulas and the method used I suggest reading these amazing publications from William Spearman et al.:
 - [Physics-Based Modeling of Pass Probabilities in Soccer](https://www.researchgate.net/publication/315166647_Physics-Based_Modeling_of_Pass_Probabilities_in_Soccer)
 - [Beyond Expected Goals](https://www.researchgate.net/publication/327139841_Beyond_Expected_Goals)
+- [EPV Calculation Approach](http://nessis.org/nessis11/rudd.pdf)
 
 ## Acknowledgments
 - Thanks to "Friends of Tracking Data" for the useful content in soccer analytics.
