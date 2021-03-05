@@ -13,6 +13,7 @@ import matplotlib.animation as animation
 import os
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib.colors 
+import Metrica_IO as mio
 
 
 def plot_pitch(field_dimensions=(106.,68.),field_color="#32CD32",alpha=0.8) :
@@ -472,4 +473,56 @@ def plot_EPV_grid(epv_grid,attacking_direction,field_dimensions=(106.0,68.0)):
               cmap=cmap,norm=matplotlib.colors.Normalize(vmin=0,vmax=0.6))
 
 
+def plot_EPV_grid_for_event(event_id,event,tracking_home,tracking_away,epv_grid,pc_att,annotate_player=False,field_dimensions = (106.0,68.0),include_player_velocities=False,alpha=0.6):
+    
+    '''
+    Plots Expected value of EPV at given event_id. (EPV*PPCF)
+    
+    Parameters
+    ----------
+    event_id: int , should be a valid id
+    event: pd.Dataframe with Event Data.
+    tracking_home: pd.Dataframe with Tracking Data for Home Team.
+    tracking_away: pd.Dataframe with Tracking Data for Away Team.
+    epv_grid: Preloaded epv_grid. Default 32x50
+    pc_att: np.array with Pitch Control of Attacking Team, i.e. probability to get the ball at certain locations.
+    annotate_player: Annotate Player. Default is False.
+    field_dimensions:  Field dimensions in meters (Width x Height). Default is (106,68).
+    include_player_velocities: Shows velocities of players. Default is False.
+    alpha: Alpha of colors for pitch control. Default is 0.6
+    
+    Returns
+    -------
+    fig,ax:Figure and axis Objects of Expected EPV for an event.
+    
+    '''
+    
+    pass_frame=event.loc[event_id,"Start Frame"]
+    team_in_possession=event.loc[event_id,"Team"]
+    
+    #plot pitch, event and frame
+    fig,ax=plot_pitch(field_color="white",field_dimensions=field_dimensions)
+    plot_frame(tracking_home.loc[pass_frame],tracking_away.loc[pass_frame],field_dimensions=field_dimensions,figax=(fig,ax),include_player_velocities=include_player_velocities,player_alpha=alpha,annotate_player=annotate_player)
+    plot_events(event.loc[event_id:event_id],figax=(fig,ax))
+    
+    attacking_direction=mio.find_attacking_direction(team_in_possession)
+    if attacking_direction==1: # Home team
+        cmap='Greys'
+    else: # Away team
+        cmap='Reds'
+        epv_grid=np.fliplr(epv_grid) # reverse direction
+    
+    # EPV * PPCF
+    epvXppcf=pc_att*epv_grid
+    
+    vmax=np.max(epvXppcf)*2 # not too dark
+    ax.imshow(np.flipud(epvXppcf), extent=(-field_dimensions[0]/2., field_dimensions[0]/2., -field_dimensions[1]/2., field_dimensions[1]/2.),
+              interpolation='lanczos',vmin=0.0,vmax=vmax,cmap=cmap,alpha=0.7)
+    
+    
+    return fig,ax
 
+    
+    
+    
+    
