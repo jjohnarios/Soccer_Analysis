@@ -29,9 +29,9 @@ def load_EPV_grid(file_name="EPV_grid.csv"):
     
     return epv_grid
 
-def __get_EPV_at_location(start_pos,epv_grid,team_with_possession,field_dimensions=(106.,68.)):
     
-    '''
+def __get_EPV_at_location(start_pos,epv_grid,team_with_possession,field_dimensions=(106.,68.)):
+    """
     Get EPV at given location.
     
     Parameters
@@ -44,7 +44,8 @@ def __get_EPV_at_location(start_pos,epv_grid,team_with_possession,field_dimensio
     Returns
     -------
     epv_grid[y_ind,x_ind] : EPV at given position
-    '''
+        
+    """
     
     # Flip EPV grid if Away Team is attacking
     if team_with_possession=="Away":
@@ -54,39 +55,15 @@ def __get_EPV_at_location(start_pos,epv_grid,team_with_possession,field_dimensio
     
     # x,y coordinates of start_pos
     x,y=start_pos[0],start_pos[1]
-    # lenx,leny of epv_grid
-    lenx_epv_grid,leny_epv_grid=epv_grid.shape[1],epv_grid.shape[0]
     
-    # len of sides of cells of grid
-    cell_x=field_dimensions[0]/lenx_epv_grid
-    cell_y=field_dimensions[1]/leny_epv_grid
-    
-    x_ranges=np.linspace(-((lenx_epv_grid/2) *cell_x),(lenx_epv_grid/2) *cell_x,lenx_epv_grid)
-    y_ranges=np.linspace((leny_epv_grid/2) *cell_y, -((leny_epv_grid/2) *cell_y) ,leny_epv_grid)
-    
-    # Indices in epv_grid
-    x_ind,y_ind=100,100
-    
-    for i in range(1,len(x_ranges)):
-        if x<=x_ranges[i]:
-            x_ind=i-1
-            break
-    # Edge case
-    if x==x_ranges[-1]:
-        x_ind=len(x_ranges)-1 
-    
-    for j in range(1,len(y_ranges)):
-        if y>=y_ranges[j]:
-            y_ind=j-1
-            break
-    # Edge case
-    if y==y_ranges[-1]:
-        y_ind=len(y_ranges)-1 
-        
+    ny,nx = epv_grid.shape
+    dx = field_dimensions[0]/float(nx)
+    dy = field_dimensions[1]/float(ny)
+    x_ind = (x+field_dimensions[0]/2.-0.0001)/dx
+    y_ind = (y+field_dimensions[1]/2.-0.0001)/dy
 
-    return epv_grid[y_ind,x_ind]
-    
 
+    return epv_grid[int(y_ind),int(x_ind)]
 
 def calculate_EPV_added(event_id,event,tracking_home,tracking_away,GK_NAMES,params,epv_grid):
     '''
@@ -107,11 +84,11 @@ def calculate_EPV_added(event_id,event,tracking_home,tracking_away,GK_NAMES,para
     # Starting and Ending Frame
     start_frame,end_frame=event.loc[event_id,["Start Frame","End Frame"]].values
     # Ball Start and Target position
-    start_pos=np.array(event.loc[event_id,["Start X","Start Y"]])
-    target_pos=np.array(event.loc[event_id,["End X","End Y"]])
+    start_pos=np.array(event.loc[event_id,["Start X","Start Y"]],dtype='float')
+    target_pos=np.array(event.loc[event_id,["End X","End Y"]],dtype='float')
     # Attacking team
     team_with_possession=event.loc[event_id,"Team"]
-    
+ 
     # Initialise Players positions , velocities etc. for Home and Away Team
     if team_with_possession=="Home":
         attacking_players=mpc.init_players(tracking_home.loc[start_frame],"Home",params,GK_NAMES[0])
@@ -122,6 +99,7 @@ def calculate_EPV_added(event_id,event,tracking_home,tracking_away,GK_NAMES,para
     
     attacking_players=mpc.check_offsides(team_with_possession,attacking_players,defending_players,start_pos)
     
+
     # Pitch Control for start pos
     pc_att_start,_=mpc.pitch_control_at_pos(start_pos,attacking_players,defending_players,start_pos,params)
     # Pitch Control for target pos
@@ -136,4 +114,3 @@ def calculate_EPV_added(event_id,event,tracking_home,tracking_away,GK_NAMES,para
     epv_added=pc_att_target*epv_target -pc_att_start*epv_start
     
     return epv_added
-    
