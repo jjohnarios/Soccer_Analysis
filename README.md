@@ -36,9 +36,9 @@ Pitch Control to find controlled regions from teams is provided and EPV to calcu
 ## Expected Possession Value - EPV
 - EPV quantifies the value of possessing the ball at a given instance.
 - It's the probability that the current possession will end in a goal given the current situation (ball & player position,match state etc.)
-- Simplier approach: ![equation1](http://www.sciweavers.org/tex2img.php?eq=EPV%20%3D%20P_%7Bposs%7D%28G%20%5Cmid%20ball%2Cmatch%20state%29&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0)
-- Expected EPV at position pos: ![equation2](http://www.sciweavers.org/tex2img.php?eq=ExpectedEPV_%7Bpos%7D%20%3D%20EPV_%7Bpos%7D%20%2A%20PPCF_%7Bpos%7D&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0)
-- Expected EPV added of a pass from pos1 to pos2: ![equation3](http://www.sciweavers.org/tex2img.php?eq=EPVadded%3DExpectedEPV_%7Bpos2%7D%20-%20ExpectedEPV_%7Bpos1%7D&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0)
+- Simplier approach: ![equation1](https://latex.codecogs.com/gif.latex?EPV=P_{pos}(G|ball,match&space;state))
+- Expected EPV at position pos: ![equation2](https://latex.codecogs.com/gif.latex?ExpectedEPV_{pos}=EPV_{pos}&space;*&space;PPCF_{pos})
+- Expected EPV added of a pass from pos1 to pos2: ![equation3](https://latex.codecogs.com/gif.latex?ExpectedEPVadded=ExpectedEPV_{pos2}&space;-&space;ExpectedEPV_{pos1})
 - Contour areas below represent high EPV added options. Player 19 passes the ball and 0.012 EPV is added
 
 <p align="center">
@@ -53,5 +53,6 @@ For deep understanding of the formulas and the method used I suggest reading the
 
 ## Acknowledgments
 - Thanks to "Friends of Tracking Data" for the useful content in soccer analytics.
+- Thanks to Metrica Sports for the Data.
 - EPV_grid.csv from HarvardSoccer.
 
