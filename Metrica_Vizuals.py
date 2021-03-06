@@ -500,11 +500,6 @@ def plot_EPV_grid_for_event(event_id,event,tracking_home,tracking_away,epv_grid,
     pass_frame=event.loc[event_id,"Start Frame"]
     team_in_possession=event.loc[event_id,"Team"]
     
-    #plot pitch, event and frame
-    fig,ax=plot_pitch(field_color="white",field_dimensions=field_dimensions)
-    plot_frame(tracking_home.loc[pass_frame],tracking_away.loc[pass_frame],field_dimensions=field_dimensions,figax=(fig,ax),include_player_velocities=include_player_velocities,player_alpha=alpha,annotate_player=annotate_player)
-    plot_events(event.loc[event_id:event_id],figax=(fig,ax))
-    
     attacking_direction=mio.find_attacking_direction(team_in_possession)
     if attacking_direction==1: # Home team
         cmap='Greys'
@@ -512,12 +507,20 @@ def plot_EPV_grid_for_event(event_id,event,tracking_home,tracking_away,epv_grid,
         cmap='Reds'
         epv_grid=np.fliplr(epv_grid) # reverse direction
     
+    #plot pitch, event and frame
+    fig,ax=plot_pitch(field_color="white",field_dimensions=field_dimensions)
+    plot_frame(tracking_home.loc[pass_frame],tracking_away.loc[pass_frame],field_dimensions=field_dimensions,figax=(fig,ax),include_player_velocities=include_player_velocities,
+               player_alpha=alpha,annotate_player=annotate_player,ball_color='green',markersize=8.2)
+    plot_events(event.loc[event_id:event_id],figax=(fig,ax),color='green',alpha=1)
+    
+
+    
     # EPV * PPCF
     epvXppcf=pc_att*epv_grid
     
-    vmax=np.max(epvXppcf)*2 # not too dark
+    vmax=np.max(epvXppcf)*1.5 # not too dark
     ax.imshow(np.flipud(epvXppcf), extent=(-field_dimensions[0]/2., field_dimensions[0]/2., -field_dimensions[1]/2., field_dimensions[1]/2.),
-              interpolation='lanczos',vmin=0.0,vmax=vmax,cmap=cmap,alpha=0.7)
+              interpolation='lanczos',vmin=0.0,vmax=vmax,cmap=cmap,alpha=0.9)
     
     
     return fig,ax
