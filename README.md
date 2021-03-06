@@ -21,7 +21,7 @@ Pitch Control to find controlled regions from teams is provided.
   <img src="images/Pitch_ReadMe.png" width="600" title="Pitch Vizualization">
 </p>
 
-## Pitch Control
+## Potential Pitch Control Field - PPCF
 - How Teams control regions,pass probability for an imaginary ball placed at every point on the pitch.
 - Pitch Control at a Target Location is the probability that a team or a player will be able to control the ball if it were at that location.
 - Gray regions are controlled by Home Team (black color :black_circle:)
@@ -33,6 +33,17 @@ Pitch Control to find controlled regions from teams is provided.
   <img src="images/Pitch_Control_Readme.png" width="600" title="Pitch Control for certain frame">
 </p>
 
+## Expected Possession Value - EPV
+- EPV quantifies the value of possessing the ball at a given instance.
+- It's the probability that the current possession will end in a goal given the current situation (ball & player position,match state etc.)
+- Simplier approach: ![equation](http://www.sciweavers.org/tex2img.php?eq=EPV%3D%20Pposs%20%28G%7Cball%2Cmatch%20state%29&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0)
+- Expected EPV at position pos: ![equation](http://www.sciweavers.org/tex2img.php?eq=Expected%20EPV%3D%20PPCFpos%20%2A%20EPVpos&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0)
+- Expected EPV added of a pass from pos1 to pos2: ![equation](http://www.sciweavers.org/tex2img.php?eq=EPV%20added%3D%20%20ExpectedEPV_%7Bpos2%7D%20-%20ExpectedEPV_%7Bpos1%7D%20&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0)
+- Contour areas below represent high EPV added options. Player 19 passes the ball and 0.012 EPV is added
+
+<p align="center">
+  <img src="images/Expected_EPV_at_821_and_PPCF.png" width="600" title="Expected EPV and PPCF.">
+</p>
 
 ## Resources
 For deep understanding of the formulas and the method used I suggest reading these amazing publications from William Spearman et al.:
