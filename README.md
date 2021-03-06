@@ -2,12 +2,13 @@
  
 Working with Metrica's tracking and event data for Soccer Analytics. Providing insightful pitch visualizations and clips from soccer matches.
 Pitch Control to find controlled regions from teams is provided and EPV to calculate the probability that a possession leads to a goal.
+Helpful for match analysis, player and team performance evaluation.
  
 ![Python](https://img.shields.io/badge/-Python-yellow) ![Jupyter Notebook](https://img.shields.io/badge/-JupyterNotebook-cyan)
 
 ## About the data
 - Two Sample Games in standar CSV format with synchronized Tracking and Event data (Metrica Sports).
-- Details and proper documentation of the data can be found in the link above.
+- Details and proper documentation of the data can be found in the link below.
 - Source: https://github.com/metrica-sports/sample-data
 
 ## General
