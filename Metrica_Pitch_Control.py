@@ -115,8 +115,8 @@ def check_offsides(attacking_team,attacking_players,defending_players,ball_start
                 non_offside_attacking_players.append(player) 
             elif  player.position[0] <= second_last_def_x_pos: # Not Offside
                 non_offside_attacking_players.append(player)
-            else:
-                print("Player {} is OFFSIDE!".format(player.name))
+            #else:
+                #print("Player {} is OFFSIDE!".format(player.name))
     else: # Away , direction of attack <----
         second_last_def_x_pos=sorted(x_def_positions)[1]  -tol # x position of second last defender + tol meters
         
@@ -125,8 +125,8 @@ def check_offsides(attacking_team,attacking_players,defending_players,ball_start
                 non_offside_attacking_players.append(player)
             elif player.position[0] >= second_last_def_x_pos: # Not Offside
                 non_offside_attacking_players.append(player)
-            else:
-                print("Player {} is OFFSIDE!".format(player.name))
+            #else:
+                #print("Player {} is OFFSIDE!".format(player.name))
                 
                 
     return non_offside_attacking_players
