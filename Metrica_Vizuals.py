@@ -473,7 +473,7 @@ def plot_EPV_grid(epv_grid,attacking_direction,field_dimensions=(106.0,68.0)):
               cmap=cmap,norm=matplotlib.colors.Normalize(vmin=0,vmax=0.6))
 
 
-def plot_EPV_grid_for_event(event_id,event,tracking_home,tracking_away,epv_grid,pc_att,annotate_player=False,field_dimensions = (106.0,68.0),include_player_velocities=False,alpha=0.6):
+def plot_EPV_grid_for_event(event_id,event,tracking_home,tracking_away,epv_grid,pc_att,annotate_player=False,field_dimensions = (106.0,68.0),include_player_velocities=False,alpha=0.6,contour=False):
     
     '''
     Plots Expected value of EPV at given event_id. (EPV*PPCF)
@@ -490,7 +490,7 @@ def plot_EPV_grid_for_event(event_id,event,tracking_home,tracking_away,epv_grid,
     field_dimensions:  Field dimensions in meters (Width x Height). Default is (106,68).
     include_player_velocities: Shows velocities of players. Default is False.
     alpha: Alpha of colors for pitch control. Default is 0.6
-    
+    contour: Add contours to areas with Expected EPV > 75% of max(expected EPV). Default is False
     Returns
     -------
     fig,ax:Figure and axis Objects of Expected EPV for an event.
@@ -522,6 +522,12 @@ def plot_EPV_grid_for_event(event_id,event,tracking_home,tracking_away,epv_grid,
     ax.imshow(np.flipud(epvXppcf), extent=(-field_dimensions[0]/2., field_dimensions[0]/2., -field_dimensions[1]/2., field_dimensions[1]/2.),
               interpolation='lanczos',vmin=0.0,vmax=vmax,cmap=cmap,alpha=0.9)
     
+
+    # Add contour to areas within 75% of max epv*ppcf
+    if contour:
+        # can add multiple contours if there are multiple such areas
+        ax.contour(epvXppcf,extent=(-field_dimensions[0]/2., field_dimensions[0]/2., -field_dimensions[1]/2., field_dimensions[1]/2.),levels=np.array([0.75])*np.max(epvXppcf),
+               vmin=0.0,vmax=vmax,colors='blue')
     
     return fig,ax
 
