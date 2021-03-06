@@ -56,6 +56,9 @@ def __get_EPV_at_location(start_pos,epv_grid,team_with_possession,field_dimensio
     # x,y coordinates of start_pos
     x,y=start_pos[0],start_pos[1]
     
+    if abs(x)>field_dimensions[0]/2 or abs(y)>field_dimensions[1]/2:
+        return 0.0 # Position out of the field, EPV is zero
+    
     ny,nx = epv_grid.shape
     dx = field_dimensions[0]/float(nx)
     dy = field_dimensions[1]/float(ny)
