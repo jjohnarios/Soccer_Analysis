@@ -1,0 +1,4 @@
+matplotlib==3.3.4
+pandas==1.2.3
+numpy==1.19.2
+temp==2020.7.2
